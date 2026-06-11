@@ -1,0 +1,127 @@
+## Business Scenario
+
+A multinational company receives operational events from multiple systems:
+
+ERP Orders
+Logistics Tracking
+Inventory Updates
+Payment Transactions
+Customer Service Events
+Supplier Updates
+Warehouse IoT Sensors
+CRM Events
+
+The platform must:
+
+Ingest ~2M+ events/day (simulated)
+Process events in near real time (<15 min latency)
+Guarantee data quality and exactly-once semantics
+Maintain Bronze/Silver/Gold layers
+Provide business dashboards
+Be production-ready with monitoring and CI/CD
+
+### 1. High-Level Architecture
+                 +----------------------+
+                 |  Source Systems (8)  |
+                 | ERP, CRM, IoT, APIs  |
+                 +----------+-----------+
+                            |
+                            |
+                JSON Events / Kafka API
+                            |
+                            v
+              +--------------------------+
+              |    Azure Event Hubs       |
+              +------------+--------------+
+                           |
+                           |
+                  Structured Streaming
+                           |
+                           v
+      +------------------------------------------+
+      |     Databricks Delta Live Tables          |
+      |-------------------------------------------|
+      | Bronze: Raw ingestion                     |
+      | Silver: Cleansing & Validation            |
+      | Gold: Business Aggregations               |
+      +-------------+---------------+-------------+
+                    |               |
+                    |               |
+                    v               v
+        Delta Lake (ADLS)      Quarantine Zone
+                                      |
+                              Invalid Records
+                                      |
+                                      v
+                          Dead Letter Queue Storage
+
+                    |
+                    v
+
+          +-----------------------------+
+          |   Power BI / Synapse SQL     |
+          +-----------------------------+
+
+                    |
+                    v
+
+          Azure Monitor + Log Analytics
+                    |
+                    v
+
+             Alerts / Email / Teams
+### 2. Repository Structure
+real-time-operational-data-platform/
+│
+├── README.md
+├── architecture/
+│   ├── solution_architecture.png
+│   ├── medallion_architecture.png
+│   └── deployment_diagram.png
+│
+├── data_generator/
+│   ├── event_producer.py
+│   ├── order_generator.py
+│   ├── inventory_generator.py
+│   └── config.json
+│
+├── eventhub/
+│   ├── create_eventhub.md
+│   └── eventhub_config.json
+│
+├── databricks/
+│   ├── bronze_pipeline.py
+│   ├── silver_pipeline.py
+│   ├── gold_pipeline.py
+│   ├── expectations.py
+│   └── dlt_pipeline.json
+│
+├── schemas/
+│   ├── order_schema.json
+│   ├── payment_schema.json
+│   └── inventory_schema.json
+│
+├── monitoring/
+│   ├── azure_monitor_setup.md
+│   ├── alert_rules.json
+│   └── dashboard_queries.kql
+│
+├── cicd/
+│   ├── azure-pipelines.yml
+│   └── deployment_guide.md
+│
+├── powerbi/
+│   ├── dashboard_model.pbix
+│   └── dashboard_screenshots/
+│
+├── terraform/
+│   ├── main.tf
+│   ├── variables.tf
+│   └── outputs.tf
+│
+└── docs/
+    ├── design_decisions.md
+    ├── scaling_strategy.md
+    ├── data_quality_framework.md
+    ├── cost_optimization.md
+    └── runbook.md
